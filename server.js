@@ -1,32 +1,36 @@
-const express = require("express")
-const http= require('http')
-const cors = require("cors")
-const socket = require("socket.io")
-
-const port = process.env.PORT || 3232;
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
 
-const server = http.Server(app);
-const io = socket(server, {
+const server = require("http").Server(app);
+const io = require("socket.io")(server, {
   cors: {
     origin: "*",
   },
 });
-app.use(cors());
 
 let arr = [];
-io.on("connection", (socket)=> {
+io.on("connection", (socket) => {
   socket.on("init_call", function (room) {
     socket.join(room);
+    console.log("counsellor joined with", room);
   });
 
   socket.on("new-call", (room) => {
     socket.join(room.c_email);
-    if(!arr.includes(room.username)){
+    console.log("user joined with", room.c_email);
+    if (!arr.includes(room.username)) {
       arr.push(room.username);
     }
     socket.broadcast.to(room.c_email).emit("new_notification", arr);
+  });
+
+  socket.on("accept_call", (data) => {
+    socket.broadcast
+      .to(data.c_email)
+      .emit("stop_spinner", { success: data.success });
   });
 
   socket.on("remove", (room) => {
@@ -41,6 +45,11 @@ io.on("connection", (socket)=> {
   socket.on("disconnect", function () {});
 });
 
-io.listen(port,()=>{
-  console.log(`Socket PORT is listening at ${port}`);
+app.get("/", (req, res) => {
+  res.send("<h1>Welcome to yoursafespaceonline.com</h1>");
 });
+
+server.listen(process.env.PORT || 3232, () => {
+  console.log("Server is listening at 3232");
+});
+
