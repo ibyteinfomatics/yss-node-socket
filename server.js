@@ -52,7 +52,7 @@ io.on("connection", (socket) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("<h1>Welcome to yoursafespaceonline.com</h1>");
+  res.send("<h1>Welcome to socket.yoursafespaceonline.com</h1>");
 });
 
 server.listen(process.env.PORT || 3232, () => {
