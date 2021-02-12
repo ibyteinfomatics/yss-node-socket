@@ -50,6 +50,10 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on('send_notification',(data)=>{
+    socket.emit('new_notificaiton' ,arr);
+  })
+
   socket.on("disconnect", function () {});
 });
 
