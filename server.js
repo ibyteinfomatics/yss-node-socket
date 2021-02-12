@@ -12,6 +12,8 @@ const io = require("socket.io")(server, {
 });
 
 var arr = [];
+var notification=[]
+
 
 io.on("connection", (socket) => {
   socket.on("init_call", function (room) {
@@ -23,7 +25,7 @@ io.on("connection", (socket) => {
     if (arr.filter( vendor => vendor['id'] === room.id ) == 0) {
       arr.push({ id: room.id, username: room.username });
     }
-    socket.broadcast.to(room.c_email).emit("new_notification", arr);
+    socket.broadcast.to(room.c_email).emit("new_request", arr);
   });
 
   socket.on("accept_call", (data) => {
@@ -37,7 +39,7 @@ io.on("connection", (socket) => {
     if (index > -1) {
       arr.splice(index, 1);
     }
-    socket.broadcast.to(room.c_email).emit("new_notification", arr);
+    socket.broadcast.to(room.c_email).emit("new_request", arr);
   });
 
   socket.on("decline_call", (data) => {
@@ -52,7 +54,7 @@ io.on("connection", (socket) => {
 });
 
 app.get("/", (req, res) => {
-  res.send("<h1>Welcome to socket.yoursafespaceonline.com</h1>");
+  res.send("<h1>Welcome to yoursafespaceonline.com</h1>");
 });
 
 server.listen(process.env.PORT || 3232, () => {
