@@ -1,46 +1,62 @@
-const express = require("express")
-const http= require('http')
-const cors = require("cors")
-const socket = require("socket.io")
-
-const port = process.env.PORT || 3232;
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
+app.use(cors());
 
-const server = http.Server(app);
-const io = socket(server, {
+const server = require("http").Server(app);
+const io = require("socket.io")(server, {
   cors: {
     origin: "*",
   },
 });
-app.use(cors());
 
-let arr = [];
-io.on("connection", (socket)=> {
+var arr = [];
+var notification=[]
+
+
+io.on("connection", (socket) => {
   socket.on("init_call", function (room) {
     socket.join(room);
   });
 
   socket.on("new-call", (room) => {
     socket.join(room.c_email);
-    if(!arr.includes(room.username)){
-      arr.push(room.username);
+    if (arr.filter( vendor => vendor['id'] === room.id ) == 0) {
+      arr.push({ id: room.id, username: room.username });
     }
-    socket.broadcast.to(room.c_email).emit("new_notification", arr);
+    socket.broadcast.to(room.c_email).emit("new_request", arr);
+  });
+
+  socket.on("accept_call", (data) => {
+    socket.broadcast
+      .to(data.c_email)
+      .emit("stop_spinner", { success: data.success });
   });
 
   socket.on("remove", (room) => {
-    const index = arr.indexOf(room.username);
-    if (index > -1 && arr.includes(room.username)) {
+    const index = arr.findIndex((i) => i.id === room.id);
+    if (index > -1) {
       arr.splice(index, 1);
     }
-    console.log(arr);
-    socket.broadcast.to(room.c_email).emit("new_notification", arr);
+    socket.broadcast.to(room.c_email).emit("new_request", arr);
+  });
+
+  socket.on("decline_call", (data) => {
+    if (!data) {
+      socket.broadcast
+        .to(data.c_email)
+        .emit("deny_call", { success: data.success });
+    }
   });
 
   socket.on("disconnect", function () {});
 });
 
-io.listen(port,()=>{
-  console.log(`Socket PORT is listening at ${port}`);
+app.get("/", (req, res) => {
+  res.send("<h1>Welcome to yoursafespaceonline.com</h1>");
+});
+
+server.listen(process.env.PORT || 3232, () => {
+  console.log("Server is listening at 3232");
 });
