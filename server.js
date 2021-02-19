@@ -1,9 +1,9 @@
 const express = require("express");
 const cors = require("cors");
-
+const fetch = require("node-fetch");
 const app = express();
 app.use(cors());
-
+const API='https://api.yoursafespaceonline.com/api';
 const server = require("http").Server(app);
 const io = require("socket.io")(server, {
   cors: {
@@ -12,8 +12,7 @@ const io = require("socket.io")(server, {
 });
 
 var arr = [];
-var notification=[]
-
+var notifications = { data: [], last_page: 0, currentPage: 1, totalPage: [] };
 
 io.on("connection", (socket) => {
   socket.on("init_call", function (room) {
@@ -22,7 +21,7 @@ io.on("connection", (socket) => {
 
   socket.on("new-call", (room) => {
     socket.join(room.c_email);
-    if (arr.filter( vendor => vendor['id'] === room.id ) == 0) {
+    if (arr.filter((vendor) => vendor["id"] === room.id) == 0) {
       arr.push({ id: room.id, username: room.username });
     }
     socket.broadcast.to(room.c_email).emit("new_request", arr);
@@ -50,9 +49,40 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on('send_notification',(data)=>{
-    socket.emit('new_notificaiton' ,arr);
-  })
+  socket.on("join-notification", (id) => {
+    socket.join(id);
+  });
+  
+  socket.on("payment_success", async (data) => {
+    let id = parseInt(data.id);
+    let count=0;
+    try {
+      let result = await fetch(
+        `${API}/get/user/notification?user_id=${id}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/vnd.api+json; charset=utf-8",
+            Accept: "application/json"
+          }
+        }
+      );
+      let response = await result.json();
+      console.log(response)
+      if (response.success) {
+        response.data.map((item) => {
+          console.log(item);
+          if (item.is_read == 0) {
+            count++;
+          }
+        });
+      }
+    } catch (e) {
+      console.log(e);
+    }
+    console.log(count);
+    io.to(id).emit("payment_notification", count);
+  });
 
   socket.on("disconnect", function () {});
 });
