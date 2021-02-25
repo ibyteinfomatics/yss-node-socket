@@ -41,7 +41,8 @@ io.on("connection", (socket) => {
     if (index > -1) {
       arr.splice(index, 1);
     }
-    socket.broadcast.to(room.c_email).emit("new_request", arr);
+    let temp=arr.filter((i) => i["id"] === room.id);
+    socket.broadcast.to(room.c_email).emit("new_request", temp);
   });
 
   socket.on("decline_call", (data) => {
