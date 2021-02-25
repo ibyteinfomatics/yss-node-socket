@@ -23,7 +23,9 @@ io.on("connection", (socket) => {
     if (arr.filter((vendor) => vendor["id"] === room.id).length === 0) {
       socket.join(room.c_email);
       arr.push({ id: room.id, username: room.username });
-      socket.broadcast.to(room.c_email).emit("new_request", arr);
+      let temp=arr.filter((i) => i["id"] === room.id);
+      console.log('going',temp);
+      socket.broadcast.to(room.c_email).emit("new_request", temp);
     }
   });
 
