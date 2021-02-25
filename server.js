@@ -20,11 +20,11 @@ io.on("connection", (socket) => {
   });
 
   socket.on("new-call", (room) => {
-    socket.join(room.c_email);
-    if (arr.filter((vendor) => vendor["id"] === room.id) == 0) {
+    if (arr.filter((vendor) => vendor["id"] === room.id).length === 0) {
+      socket.join(room.c_email);
       arr.push({ id: room.id, username: room.username });
+      socket.broadcast.to(room.c_email).emit("new_request", arr);
     }
-    socket.broadcast.to(room.c_email).emit("new_request", arr);
   });
 
   socket.on("accept_call", (data) => {
@@ -68,10 +68,8 @@ io.on("connection", (socket) => {
         }
       );
       let response = await result.json();
-      console.log(response)
       if (response.success) {
         response.data.map((item) => {
-          console.log(item);
           if (item.is_read == 0) {
             count++;
           }
@@ -80,7 +78,6 @@ io.on("connection", (socket) => {
     } catch (e) {
       console.log(e);
     }
-    console.log(count);
     io.to(id).emit("payment_notification", count);
   });
 
