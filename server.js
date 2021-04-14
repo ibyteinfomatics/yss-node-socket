@@ -1,9 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const fetch = require("node-fetch");
+
 const app = express();
 app.use(cors());
-const API='https://api.yoursafespaceonline.com/api';
+const API = "https://admin.soberlistic.com/api";
 const server = require("http").Server(app);
 const io = require("socket.io")(server, {
   cors: {
@@ -21,18 +22,16 @@ io.on("connection", (socket) => {
 
   socket.on("new-call", (room) => {
     if (arr.filter((vendor) => vendor["id"] === room.id).length === 0) {
-      socket.join(room.c_email);
-      arr.push({ id: room.id, username: room.username });
-      let temp=arr.filter((i) => i["id"] === room.id);
-      console.log('coming',arr);
-      console.log('going',temp);
-      socket.broadcast.to(room.c_email).emit("new_request", temp);
+      socket.join(room.room_id);
+      arr.push({ id: room.id, username: room.username, avatar:room.avatar, channel:room.room_id});
+      let temp = arr.filter((i) => i["id"] === room.id);
+      socket.broadcast.to(room.room_id).emit("new_request", temp);
     }
   });
-
+  
   socket.on("accept_call", (data) => {
     socket.broadcast
-      .to(data.c_email)
+      .to(data.room_id)
       .emit("stop_spinner", { success: data.success });
   });
 
@@ -41,36 +40,34 @@ io.on("connection", (socket) => {
     if (index > -1) {
       arr.splice(index, 1);
     }
-    let temp=arr.filter((i) => i["id"] === room.id);
-    socket.broadcast.to(room.c_email).emit("new_request", temp);
+    let temp = arr.filter((i) => i["id"] === room.id);
+    socket.broadcast.to(room.room_id).emit("new_request", temp);
   });
 
-  socket.on("decline_call", (data) => {
-    if (!data) {
+  socket.on("disconnect_call", (data) => {
+    console.log(data);
+    if (data) {
       socket.broadcast
-        .to(data.c_email)
-        .emit("deny_call", { success: data.success });
+        .to(data.room_id)
+        .emit("cut_call", { success: data.success });
     }
   });
 
   socket.on("join-notification", (id) => {
     socket.join(id);
   });
-  
+
   socket.on("payment_success", async (data) => {
     let id = parseInt(data.id);
-    let count=0;
+    let count = 0;
     try {
-      let result = await fetch(
-        `${API}/get/user/notification?user_id=${id}`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/vnd.api+json; charset=utf-8",
-            Accept: "application/json"
-          }
-        }
-      );
+      let result = await fetch(`${API}/get/user/notification?user_id=${id}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/vnd.api+json; charset=utf-8",
+          Accept: "application/json",
+        },
+      });
       let response = await result.json();
       if (response.success) {
         response.data.map((item) => {
@@ -86,10 +83,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", function () {});
-});
 
-app.get("/", (req, res) => {
-  res.send("<h1>Welcome to yoursafespaceonline.com</h1>");
 });
 
 server.listen(process.env.PORT || 3232, () => {
