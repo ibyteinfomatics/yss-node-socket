@@ -20,22 +20,32 @@ io.on("connection", (socket) => {
     socket.join(room);
   });
 
+  //console.log(socket.client); 
+
   socket.on("new-call", (room) => {
-    if (arr.filter((vendor) => vendor["id"] === room.id).length === 0) {
-      socket.join(room.room_id);
-      arr.push({ id: room.id, username: room.username, avatar:room.avatar, channel:room.room_id});
+    if (arr.filter((vendor) => vendor["id"] === room.id).length === 0) {  
+      arr.push({
+        id: room.id,
+        username: room.username,
+        avatar: room.avatar,
+        channel_id: room.channel_id,
+        time: room.time,
+        sender:room.sender,
+        sender_id: room.sender_id
+      });
       let temp = arr.filter((i) => i["id"] === room.id);
       socket.broadcast.to(room.room_id).emit("new_request", temp);
     }
   });
-  
+
   socket.on("accept_call", (data) => {
     socket.broadcast
-      .to(data.room_id)
+      .to(data.sender)
       .emit("stop_spinner", { success: data.success });
   });
 
   socket.on("remove", (room) => {
+    console.log(room);
     const index = arr.findIndex((i) => i.id === room.id);
     if (index > -1) {
       arr.splice(index, 1);
@@ -45,10 +55,9 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect_call", (data) => {
-    console.log(data);
     if (data) {
       socket.broadcast
-        .to(data.room_id)
+        .to(data.sender)
         .emit("cut_call", { success: data.success });
     }
   });
@@ -76,14 +85,14 @@ io.on("connection", (socket) => {
           }
         });
       }
-    } catch (e) {
+    } 
+    catch (e) {
       console.log(e);
     }
     io.to(id).emit("payment_notification", count);
   });
 
   socket.on("disconnect", function () {});
-
 });
 
 server.listen(process.env.PORT || 3232, () => {
