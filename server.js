@@ -13,14 +13,16 @@ const io = require("socket.io")(server, {
 });
 
 var arr = [];
-var notifications = { data: [], last_page: 0, currentPage: 1, totalPage: [] };
+var loggedInUsers = [];
 
 io.on("connection", (socket) => {
-  socket.on("init_call", function (room) {
-    socket.join(room);
+  socket.on("subscribe", function (room) {
+    if(!loggedInUsers.includes(room)){
+      socket.join(room);
+      loggedInUsers.push(room)
+      console.log(room,' joined');
+    }
   });
-
-  //console.log(socket.client); 
 
   socket.on("new-call", (room) => {
     if (arr.filter((vendor) => vendor["id"] === room.id).length === 0) {  
@@ -91,6 +93,16 @@ io.on("connection", (socket) => {
     }
     io.to(id).emit("payment_notification", count);
   });
+
+  socket.on('unsubscribe',(room)=>{
+    if(loggedInUsers.includes(room)){
+      socket.leave(room)
+      loggedInUsers=loggedInUsers.filter(i=>i!=room)
+      console.log(room,' left');
+      console.log(loggedInUsers);
+    }
+
+  })
 
   socket.on("disconnect", function () {});
 });
