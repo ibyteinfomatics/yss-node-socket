@@ -4,7 +4,7 @@ const fetch = require("node-fetch");
 
 const app = express();
 app.use(cors());
-const API = "https://admin.soberlistic.com/api";
+const API = "https://admin.soberlistic.com/api"; 
 const server = require("http").Server(app);
 const io = require("socket.io")(server, {
   cors: {
@@ -17,11 +17,10 @@ var loggedInUsers = [];
 
 io.on("connection", (socket) => {
   socket.on("subscribe", function (room) {
-    if(!loggedInUsers.includes(room)){
-      socket.join(room);
+      
+    socket.join(room);
+      console.log(room,' joined with ',socket.id);
       loggedInUsers.push(room)
-      console.log(room,' joined');
-    }
   });
 
   socket.on("new-call", (room) => {
@@ -47,7 +46,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("remove", (room) => {
-    console.log(room);
     const index = arr.findIndex((i) => i.id === room.id);
     if (index > -1) {
       arr.splice(index, 1);
@@ -71,26 +69,26 @@ io.on("connection", (socket) => {
   socket.on("payment_success", async (data) => {
     let id = parseInt(data.id);
     let count = 0;
-    try {
-      let result = await fetch(`${API}/get/user/notification?user_id=${id}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/vnd.api+json; charset=utf-8",
-          Accept: "application/json",
-        },
-      });
-      let response = await result.json();
-      if (response.success) {
-        response.data.map((item) => {
-          if (item.is_read == 0) {
-            count++;
-          }
+      try {
+        let result = await fetch(`${API}/get/user/notification?user_id=${id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/vnd.api+json; charset=utf-8",
+            Accept: "application/json",
+          },
         });
+        let response = await result.json();
+        if (response.success) {
+          response.data.map((item) => {
+            if (item.is_read == 0) {
+              count++;
+            }
+          });
+        }
+      } 
+      catch (e) {
+        console.log(e);
       }
-    } 
-    catch (e) {
-      console.log(e);
-    }
     io.to(id).emit("payment_notification", count);
   });
 
@@ -98,8 +96,6 @@ io.on("connection", (socket) => {
     if(loggedInUsers.includes(room)){
       socket.leave(room)
       loggedInUsers=loggedInUsers.filter(i=>i!=room)
-      console.log(room,' left');
-      console.log(loggedInUsers);
     }
 
   })
