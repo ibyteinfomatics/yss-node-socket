@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const fetch = require("node-fetch");
+const { Socket } = require("dgram");
 
 const app = express();
 app.use(cors());
@@ -16,17 +17,17 @@ var arr = [];
 var users = [];
 
 io.on("connection", (socket) => {
+
   socket.on("subscribe", (user_id) => {
-    console.log("subscribe");
-    if (user_id) {
+    let isExist=users.some(i=>i.socketId===socket.id);
+    if (user_id && !isExist) {
       users.push({ userId: user_id, socketId: socket.id });
     }
-    socket.broadcast.to(socket.id).emit("connected",{handshake_id:socket.id})
+    socket.broadcast.to(socket.id).emit("connected", { handshake_id: socket.id });
     console.log(users);
   });
 
   socket.on("new-call", (data) => {
-    console.log("data", data);
     arr.push({
       id: data.id,
       username: data.username,
@@ -40,8 +41,7 @@ io.on("connection", (socket) => {
     });
     let temp = arr.filter((i) => i["reciever_id"] === data.reciever_id);
     let id_arr = users.filter((i) => i.userId === data.reciever_id);
-    console.log("id_arr", id_arr);
-    console.log("temp", temp);
+
     id_arr.map((id) => {
       socket.broadcast.to(id.socketId).emit("new_request", temp);
     });
@@ -50,15 +50,18 @@ io.on("connection", (socket) => {
   socket.on("accept_call", (data) => {
     if (data.success) {
       console.log("sender", data.sender);
-      socket.broadcast.to(data.sender).emit("stop_spinner", { success: data.success, reciever:socket.id });
+      socket.broadcast
+        .to(data.sender)
+        .emit("stop_spinner", { success: data.success, reciever: socket.id });
     } else {
-      socket.broadcast.to(data.sender)
+      socket.broadcast
+        .to(data.sender)
         .emit("stop_spinner", { success: data.success });
     }
   });
 
   socket.on("remove", (data) => {
-    console.log("remove",data);
+    console.log("remove", data);
     const index = arr.findIndex((i) => i.id === data.id);
     if (index > -1) {
       arr.splice(index, 1);
@@ -69,11 +72,13 @@ io.on("connection", (socket) => {
     id_arr.map((id) => {
       socket.broadcast.to(id.socketId).emit("new_request", temp);
     });
-});
+  });
 
   socket.on("disconnect_call", (data) => {
     if (data.sender) {
-      socket.broadcast.to(data.sender).emit("cut_call", { success: data.success });
+      socket.broadcast
+        .to(data.sender)
+        .emit("cut_call", { success: data.success });
     }
   });
 
@@ -108,11 +113,16 @@ io.on("connection", (socket) => {
     if (Removeindex > -1) {
       users.splice(Removeindex, 1);
     }
-    console.log(users);
   });
 
-  socket.on("disconnect", function () {});
-});
+  socket.on("disconnect", ()=> {
+    let Removeindex = users.findIndex((user) => user.socketId == socket.id);
+    if (Removeindex > -1) {
+      users.splice(Removeindex, 1);
+    }
+    console.log('left users',users);
+  });
+}); 
 
 server.listen(process.env.PORT || 3232, () => {
   console.log("Server is listening at 3232");
